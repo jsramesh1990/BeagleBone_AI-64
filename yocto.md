@@ -10,19 +10,17 @@ This document contains beginner to advanced Embedded Linux and Yocto interview p
 
 ## Topics
 
-- Linux boot process
-- Cross compilation
-- Toolchains
-- BusyBox
-- Init systems
-- Root filesystem
-- Kernel architecture
+- [Linux_boot_process](https://github.com/jsramesh1990/embedded-linux-playground/blob/main/boot_process.md)
+- [Cross_compilation](https://github.com/jsramesh1990/embedded-linux-playground/blob/main/Cross_compilation.md)
+- [Toolchains](https://github.com/jsramesh1990/embedded-linux-playground/blob/main/Toolchains.md)
+- [BusyBox](https://github.com/jsramesh1990/storing-and-fetching-date-indexed-data/blob/main/BusyBox.md)
+- [Init_systems](https://github.com/jsramesh1990/embedded-linux-playground/blob/main/Init_systems.md)
+- [Root_filesystem](https://github.com/jsramesh1990/embedded-linux-playground/blob/main/Root_filesystem.md)
+- [Kernel_architecture](https://github.com/jsramesh1990/embedded-linux-playground/blob/main/Kernel_architecture.md)
 
 ## Interview Questions
 
-- Explain Embedded Linux boot flow.
-- What is cross-compilation?
-- Difference between kernel space and user space?
+- [Difference_between_kernel_space_and_user_space](https://github.com/jsramesh1990/embedded-linux-playground/blob/main/Difference_between_kernel_space_and_user_space.md)
 
 ---
 
@@ -30,17 +28,17 @@ This document contains beginner to advanced Embedded Linux and Yocto interview p
 
 ## Topics
 
-- ROM code
-- SPL
-- U-Boot
-- Kernel loading
-- Device Tree
-- initramfs
+- [ROM_code](https://github.com/jsramesh1990/embedded-c-interview-questions/blob/main/ROM_code.md)
+- [SPL](https://github.com/jsramesh1990/embedded-c-interview-questions/blob/main/SPL.md)
+- [U-Boot](https://github.com/jsramesh1990/embedded-c-interview-questions/blob/main/U-Boot.md)
+- [Kernel_loading](https://github.com/jsramesh1990/embedded-c-interview-questions/blob/main/Kernel_loading.md)
+- [Device_Tree](https://github.com/jsramesh1990/Device-Driver-samples/blob/main/Device_Tree.md)
+- [initramfs](https://github.com/jsramesh1990/embedded-linux-playground/blob/main/initramfs.md)
 
 ## Interview Questions
 
-- Explain U-Boot boot sequence.
-- Difference between zImage and uImage?
+- [U-Boot_boot_sequence](https://github.com/jsramesh1990/embedded-c-interview-questions/blob/main/U-Boot_boot_sequence.md)
+- [Difference_between_zImage_and_uImage](https://github.com/jsramesh1990/embedded-c-interview-questions/blob/main/Difference_between_zImage_and_uImage.md)
 
 ---
 
@@ -48,17 +46,17 @@ This document contains beginner to advanced Embedded Linux and Yocto interview p
 
 ## Topics
 
-- Kernel modules
-- Scheduling
-- Interrupts
-- Memory management
-- Synchronization
-- IPC
+- [Kernel_modules](https://github.com/jsramesh1990/linux-kernel-debugging-guide/blob/main/Kernel_modules.md)
+- [Scheduling](https://github.com/jsramesh1990/embedded-linux-playground/blob/main/Scheduling.md)
+- [Interrupts](https://github.com/jsramesh1990/embedded-c-interview-questions/blob/main/Interrupts.md)
+- [Memory_management](https://github.com/jsramesh1990/memory-allocator-deep-dive/blob/main/Memory_management.md)
+- [Synchronization](https://github.com/jsramesh1990/embedded-linux-playground/blob/main/Synchronization.md)
+- [IPC](https://github.com/jsramesh1990/ipc-protocol-suite/blob/main/IPC.md)
 
 ## Interview Questions
 
-- Difference between mutex and semaphore?
-- What is context switching?
+- [Difference_between_mutex&semaphore](https://github.com/jsramesh1990/embedded-c-interview-questions/blob/main/Difference_between_mutex_and_semaphore.md)
+- [context_switching](https://github.com/jsramesh1990/embedded-c-interview-questions/blob/main/context_switching.md)
 
 ---
 
@@ -66,16 +64,18 @@ This document contains beginner to advanced Embedded Linux and Yocto interview p
 
 ## Topics
 
-- Character drivers
-- GPIO
-- I2C/SPI/UART
-- Interrupt handling
-- DMA
+- [Character_drivers](https://github.com/jsramesh1990/Character-Device-Driver/blob/main/char-driver.md)
+- [GPIO](https://github.com/jsramesh1990/virtual_sysfs_GPIO/blob/main/gpio-driver.md)
+- [I2C](https://github.com/jsramesh1990/I2C-Sensor-Data-Acquisition-and-Visualization-using-C-and-Python/blob/main/i2c-driver.md)
+- [SPI](https://github.com/jsramesh1990/spi-communication-project/blob/main/spi-driver.md)
+- [UART](https://github.com/jsramesh1990/spartan3e-advanced-uart/blob/main/UART.md)
+- [Interrupt_handling](https://github.com/jsramesh1990/embedded-c-interview-questions/blob/main/Interrupt_handling.md)
+- [DMA](https://github.com/jsramesh1990/embedded-linux-playground/blob/main/DMA.md)
 
 ## Interview Questions
 
-- Explain top-half and bottom-half.
-- What is ioctl?
+- [top-half&bottom-half](https://github.com/jsramesh1990/embedded-c-interview-questions/blob/main/top_half_and_bottom_half.md)
+- [ioctl](https://github.com/jsramesh1990/embedded-c-interview-questions/blob/main/ioctl.md)
 
 ---
 
@@ -83,15 +83,15 @@ This document contains beginner to advanced Embedded Linux and Yocto interview p
 
 ## Topics
 
-- DTS/DTB
-- Compatible strings
-- GPIO bindings
-- Clock bindings
+- [DTS/DTB](https://github.com/jsramesh1990/Embedded-Linux-Yocto/blob/main/DTS_DTB.md)
+- [Compatible_strings](https://github.com/jsramesh1990/embedded-c-interview-questions/blob/main/Compatible_strings.md)
+- [GPIO_bindings](https://github.com/jsramesh1990/virtual_sysfs_GPIO/blob/main/GPIO_bindings.md)
+- [Clock_bindings](https://github.com/jsramesh1990/embedded-c-interview-questions/blob/main/Clock_bindings.md)
 
 ## Interview Questions
 
-- Why is Device Tree needed?
-- How does kernel match DT node to driver?
+- [Why_Device_Tree_needed](https://github.com/jsramesh1990/embedded-c-interview-questions/blob/main/Why_Device_Tree_Needed.md)
+- [How_does_kernel_match_DT_node_to_driver](https://github.com/jsramesh1990/embedded-c-interview-questions/blob/main/How_does_kernel_match_DT_node_to_driver.md)
 
 ---
 
@@ -99,16 +99,15 @@ This document contains beginner to advanced Embedded Linux and Yocto interview p
 
 ## Topics
 
-- Poky
-- BitBake
-- Metadata
-- Layers
-- Recipes
+- [Poky](https://github.com/jsramesh1990/yocto-basics/blob/main/Poky.md)
+- [BitBake](https://github.com/jsramesh1990/yocto-basics/blob/main/BitBake.md)
+- [Metadata](https://github.com/jsramesh1990/yocto-basics/blob/main/Metadata.md)
+- [Layers](https://github.com/jsramesh1990/yocto-basics/blob/main/Layers.md)
+- [Recipes](https://github.com/jsramesh1990/yocto-basics/blob/main/Recipes.md)
 
 ## Interview Questions
 
-- Difference between Yocto and Buildroot?
-- What is BitBake?
+- [Difference_between_Yocto_and_Buildroot](https://github.com/jsramesh1990/embedded-c-interview-questions/blob/main/Difference_between_Yocto_and_Buildroot.md)
 
 ---
 
@@ -116,16 +115,16 @@ This document contains beginner to advanced Embedded Linux and Yocto interview p
 
 ## Topics
 
-- .bb files
-- .bbappend
-- DEPENDS
-- RDEPENDS
-- PACKAGECONFIG
+- [.bb_files](
+- [.bbappend](
+- [DEPENDS](
+- [RDEPENDS](
+- [PACKAGECONFIG](
 
 ## Interview Questions
 
-- Explain recipe lifecycle.
-- Difference between DEPENDS and RDEPENDS?
+- [Explain_recipe_lifecycle](
+- [Difference_between_DEPENDS_and_RDEPENDS](
 
 ---
 
@@ -133,14 +132,14 @@ This document contains beginner to advanced Embedded Linux and Yocto interview p
 
 ## Topics
 
-- Layer priority
-- Custom layers
-- Layer dependencies
+- [Layer_priority](
+- [Custom_layers](
+- [Layer_dependencies](
 
 ## Interview Questions
 
-- What is bbappend?
-- Why use separate layers?
+- [bbappend](
+- [Why_use_separate_layers](
 
 ---
 
@@ -148,10 +147,10 @@ This document contains beginner to advanced Embedded Linux and Yocto interview p
 
 ## Topics
 
-- Custom images
-- IMAGE_INSTALL
-- packagegroups
-- systemd services
+- [Custom_images](
+- [IMAGE_INSTALL](
+- [packagegroups](
+- [systemd_services](
 
 ---
 
@@ -170,7 +169,7 @@ This document contains beginner to advanced Embedded Linux and Yocto interview p
 
 ## Topics
 
-- Secure boot
+- [Secure_boot](
 - OP-TEE
 - dm-verity
 - TPM
@@ -182,7 +181,7 @@ This document contains beginner to advanced Embedded Linux and Yocto interview p
 
 ## Topics
 
-- dmesg
+- [dmesg](
 - strace
 - perf
 - ftrace
@@ -196,7 +195,7 @@ This document contains beginner to advanced Embedded Linux and Yocto interview p
 
 - kas
 - GitHub Actions
-- Docker builds
+- [Docker_builds](
 - Shared sstate cache
 
 ---
@@ -205,12 +204,12 @@ This document contains beginner to advanced Embedded Linux and Yocto interview p
 
 ## Topics
 
-- Real-time Linux
-- Virtualization
-- Containers
-- Edge AI
-- FPGA acceleration
-- Multi-core optimization
+- [Real-time_Linux](
+- [Virtualization](
+- [Containers](
+- [Edge_AI](
+- [FPGA acceleration](
+- [Multi-core_optimization](
 
 ---
 
@@ -218,10 +217,10 @@ This document contains beginner to advanced Embedded Linux and Yocto interview p
 
 Recommended exercises:
 
-- Build custom Yocto image
-- Create recipe
-- Create layer
-- Add kernel patch
-- Modify Device Tree
-- Add systemd service
-- Implement OTA workflow
+- [Build_custom_Yocto_image](
+- [Create_recipe](
+- [Create_layer](
+- [Add_kernel_patch](
+- [Modify_Device_Tree](
+- [Add_systemd_service](
+- [Implement_OTA_workflow](
