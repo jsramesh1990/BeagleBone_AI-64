@@ -115,16 +115,11 @@ This document contains beginner to advanced Embedded Linux and Yocto interview p
 
 ## Topics
 
-- [.bb_files](
-- [.bbappend](
-- [DEPENDS](
-- [RDEPENDS](
-- [PACKAGECONFIG](
-
-## Interview Questions
-
-- [Explain_recipe_lifecycle](
-- [Difference_between_DEPENDS_and_RDEPENDS](
+- [.bb_files](https://github.com/jsramesh1990/yocto-basics/blob/main/.bb_files.md)
+- [.bbappend](https://github.com/jsramesh1990/yocto-basics/blob/main/bbappend.md)
+- [DEPENDS](https://github.com/jsramesh1990/yocto-basics/blob/main/DEPENDS.md)
+- [RDEPENDS](https://github.com/jsramesh1990/yocto-basics/blob/main/RDEPENDS.md)
+- [PACKAGECONFIG](https://github.com/jsramesh1990/yocto-basics/blob/main/PACKAGECONFIG.md)
 
 ---
 
@@ -132,14 +127,9 @@ This document contains beginner to advanced Embedded Linux and Yocto interview p
 
 ## Topics
 
-- [Layer_priority](
-- [Custom_layers](
-- [Layer_dependencies](
-
-## Interview Questions
-
-- [bbappend](
-- [Why_use_separate_layers](
+- [Layer_priority](https://github.com/jsramesh1990/yocto-basics/blob/main/Layer_priority.md)
+- [Custom_layers](https://github.com/jsramesh1990/yocto-basics/blob/main/Custom_layers.md)
+- [Layer_dependencies](https://github.com/jsramesh1990/yocto-basics/blob/main/Layer_dependencies.md)
 
 ---
 
@@ -147,21 +137,10 @@ This document contains beginner to advanced Embedded Linux and Yocto interview p
 
 ## Topics
 
-- [Custom_images](
-- [IMAGE_INSTALL](
-- [packagegroups](
-- [systemd_services](
-
----
-
-# 10. OTA Systems
-
-## Topics
-
-- RAUC
-- Mender
-- OSTree
-- A/B updates
+- [Custom_images](https://github.com/jsramesh1990/yocto-basics/blob/main/Custom_Images.md)
+- [IMAGE_INSTALL](https://github.com/jsramesh1990/yocto-basics/blob/main/IMAGE_INSTALL.md)
+- [packagegroups](https://github.com/jsramesh1990/yocto-basics/blob/main/Package_Groups.md)
+- [systemd_services](https://github.com/jsramesh1990/embedded-linux-playground/blob/main/systemd_Services.md)
 
 ---
 
@@ -169,11 +148,8 @@ This document contains beginner to advanced Embedded Linux and Yocto interview p
 
 ## Topics
 
-- [Secure_boot](
-- OP-TEE
-- dm-verity
-- TPM
-- SELinux
+- [Secure_boot](https://github.com/jsramesh1990/yocto-basics/blob/main/Secure_Boot.md)
+
 
 ---
 
@@ -181,11 +157,11 @@ This document contains beginner to advanced Embedded Linux and Yocto interview p
 
 ## Topics
 
-- [dmesg](
-- strace
-- perf
-- ftrace
-- trace-cmd
+- [dmesg](https://github.com/jsramesh1990/linux-kernel-debugging-guide/blob/main/dmesg.md)
+- [strace](https://github.com/jsramesh1990/linux-kernel-debugging-guide/blob/main/strace.md)
+- [perf](https://github.com/jsramesh1990/linux-kernel-debugging-guide/blob/main/perf.md)
+- [ftrace](https://github.com/jsramesh1990/linux-kernel-debugging-guide/blob/main/ftrace.md)
+- [trace-cmd](https://github.com/jsramesh1990/linux-kernel-debugging-guide/blob/main/trace-cmd.md)
 
 ---
 
@@ -193,10 +169,9 @@ This document contains beginner to advanced Embedded Linux and Yocto interview p
 
 ## Topics
 
-- kas
-- GitHub Actions
-- [Docker_builds](
-- Shared sstate cache
+- [GitHub_Actions](https://github.com/jsramesh1990/embedded-linux-playground/blob/main/GitHub_Actions.md)
+- [Docker_builds](https://github.com/jsramesh1990/embedded-linux-playground/blob/main/Docker_Builds.md)
+- [Shared_sstate_cache](https://github.com/jsramesh1990/embedded-linux-playground/blob/main/Shared_sstate_Cache.md)
 
 ---
 
