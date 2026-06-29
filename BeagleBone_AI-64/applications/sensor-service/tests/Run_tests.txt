@@ -1,0 +1,4 @@
+cd build
+make sensor_manager_test sensor_service_test
+./sensor_manager_test
+./sensor_service_test

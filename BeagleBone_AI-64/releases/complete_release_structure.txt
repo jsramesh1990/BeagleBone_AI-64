@@ -1,0 +1,21 @@
+# Upgrade Guide - BBB AI-64 v1.0 to v1.1
+
+
+This complete release structure provides:
+
+1. **README.md**: Comprehensive release documentation
+2. **CHANGELOG.md**: Version history and changes
+3. **RELEASE_NOTES.md**: Detailed feature descriptions
+4. **INSTALL.md**: Installation instructions
+5. **UPGRADE.md**: Upgrade guide
+6. **version.txt**: Version tracking
+7. **checksums.sha256**: File integrity verification
+8. **RELEASE.txt**: Quick summary
+
+The release structure supports:
+- Production deployments
+- Development testing
+- User documentation
+- Upgrade paths
+- Rollback procedures
+- Verification checks

@@ -1,0 +1,37 @@
+#include "sensor-service/SensorService.h"
+
+using namespace sensor_service;
+
+auto& service = SensorService::getInstance();
+
+// Configure
+Json::Value config;
+config["collection_interval_ms"] = 500;
+config["auto_discover"] = true;
+config["service_name"] = "My Sensor Service";
+config["version"] = "2.0.0";
+
+service.initialize(config);
+
+// Set callbacks
+service.setDataCallback([](const SensorReading& reading) {
+    // Process reading
+});
+
+service.setErrorCallback([](const std::string& error) {
+    // Log error
+});
+
+service.setStatusCallback([](bool running) {
+    // Update status
+});
+
+// Start
+service.start();
+
+// Use
+auto readings = service.readAllSensors();
+auto history = service.getHistory("temp-001", 100);
+
+// Stop
+service.stop();
