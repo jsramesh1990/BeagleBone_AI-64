@@ -1,0 +1,70 @@
+#include "device-manager/DeviceManager.h"
+#include "device-manager/DeviceFactory.h"
+#include <iostream>
+#include <thread>
+
+using namespace device_manager;
+
+int main() {
+    auto& manager = DeviceManager::getInstance();
+    
+    // Configure the manager
+    Json::Value config;
+    config["config_path"] = "devices.json";
+    config["auto_discover"] = true;
+    config["discovery_interval"] = 30;
+    
+    // Initialize
+    if (!manager.initialize(config)) {
+        std::cerr << "Failed to initialize device manager" << std::endl;
+        return 1;
+    }
+    
+    // Set event callback
+    manager.setEventCallback([](const DeviceEvent& event) {
+        std::cout << "Event: " << event.type << " for device " << event.deviceId << std::endl;
+        if (!event.message.empty()) {
+            std::cout << "Message: " << event.message << std::endl;
+        }
+    });
+    
+    // Start the manager
+    if (!manager.start()) {
+        std::cerr << "Failed to start device manager" << std::endl;
+        return 1;
+    }
+    
+    // Discover devices
+    int discovered = manager.discoverDevices([](const DeviceInfo& info) {
+        std::cout << "Discovered device: " << info.name << " (" << info.id << ")" << std::endl;
+    });
+    
+    std::cout << "Discovered " << discovered << " devices" << std::endl;
+    
+    // List all devices
+    auto devices = manager.getAllDevices();
+    std::cout << "Total devices: " << devices.size() << std::endl;
+    
+    for (auto* device : devices) {
+        auto info = device->getInfo();
+        std::cout << "  - " << info.name << " [" << info.id << "] " 
+                  << "Status: " << static_cast<int>(info.status) << std::endl;
+    }
+    
+    // Read data from all devices
+    for (auto* device : devices) {
+        DeviceSample sample;
+        if (device->readData(sample, 1000)) {
+            std::cout << "Read data from " << device->getName() << std::endl;
+            std::cout << sample.toJson().toStyledString() << std::endl;
+        }
+    }
+    
+    // Run for a while
+    std::this_thread::sleep_for(std::chrono::seconds(30));
+    
+    // Stop
+    manager.stop();
+    
+    return 0;
+}
