@@ -1,0 +1,499 @@
+/**
+ * Jenkins Pipeline for BBB AI-64 Yocto Project
+ * 
+ * This pipeline automates the build, test, and deployment process
+ * for the BeagleBone AI-64 Yocto project.
+ */
+
+pipeline {
+    agent {
+        label 'yocto-builder'
+    }
+
+    // ========================================================================
+    // Environment Variables
+    // ========================================================================
+    environment {
+        // Build Configuration
+        PROJECT_DIR = 'BeagleBone_AI-64'
+        BUILD_DIR = "${WORKSPACE}/${PROJECT_DIR}/build"
+        SOURCES_DIR = "${WORKSPACE}/${PROJECT_DIR}/sources"
+        
+        // Yocto Settings
+        MACHINE = 'bbbai64'
+        DISTRO = 'poky'
+        IMAGE_NAME = 'custom-image'
+        
+        // Build Options
+        BB_NUMBER_THREADS = '8'
+        PARALLEL_MAKE = '-j 8'
+        
+        // Output Paths
+        DEPLOY_DIR = "${BUILD_DIR}/deploy/images/${MACHINE}"
+        SDK_DEPLOY_DIR = "${BUILD_DIR}/deploy/sdk"
+        
+        // Artifact Names
+        IMAGE_WIC = "${IMAGE_NAME}-${MACHINE}.wic.gz"
+        IMAGE_MANIFEST = "${IMAGE_NAME}-${MACHINE}.manifest"
+        SDK_INSTALLER = "poky-glibc-x86_64-${IMAGE_NAME}-core-image-sdk-1.0.sh"
+    }
+
+    // ========================================================================
+    // Build Parameters
+    // ========================================================================
+    parameters {
+        choice(
+            name: 'BUILD_TYPE',
+            choices: ['full', 'quick', 'sdk', 'test'],
+            description: 'Type of build to perform'
+        )
+        booleanParam(
+            name: 'CLEAN_BUILD',
+            defaultValue: false,
+            description: 'Perform a clean build'
+        )
+        booleanParam(
+            name: 'RUN_TESTS',
+            defaultValue: true,
+            description: 'Run tests after build'
+        )
+        booleanParam(
+            name: 'DEPLOY_ARTIFACTS',
+            defaultValue: true,
+            description: 'Deploy artifacts to repository'
+        )
+        string(
+            name: 'BRANCH_NAME',
+            defaultValue: 'main',
+            description: 'Branch to build'
+        )
+    }
+
+    // ========================================================================
+    // Stages
+    // ========================================================================
+    stages {
+        // ====================================================================
+        // Stage: Checkout
+        // ====================================================================
+        stage('Checkout') {
+            steps {
+                echo 'Checking out source code...'
+                checkout scm
+                
+                // Display commit information
+                script {
+                    def commitHash = sh(script: 'git rev-parse --short HEAD', returnStdout: true).trim()
+                    def commitMsg = sh(script: 'git log -1 --pretty=%B', returnStdout: true).trim()
+                    echo "Building commit: ${commitHash}"
+                    echo "Commit message: ${commitMsg}"
+                }
+            }
+        }
+
+        // ====================================================================
+        // Stage: Setup Build Environment
+        // ====================================================================
+        stage('Setup Build Environment') {
+            steps {
+                echo 'Setting up build environment...'
+                
+                // Install required packages
+                sh '''
+                    sudo apt-get update
+                    sudo apt-get install -y \
+                        gawk wget git diffstat unzip texinfo gcc build-essential \
+                        chrpath socat cpio python3 python3-pip python3-pexpect \
+                        xz-utils debianutils iputils-ping python3-git python3-jinja2 \
+                        libegl1-mesa libsdl1.2-dev xterm python3-subunit mesa-common-dev \
+                        zstd liblz4-tool
+                '''
+                
+                // Setup Yocto environment
+                dir("${PROJECT_DIR}") {
+                    sh '''
+                        cd sources/poky
+                        source oe-init-build-env ../../build
+                    '''
+                }
+                
+                // Configure build
+                dir("${BUILD_DIR}") {
+                    script {
+                        if (params.CLEAN_BUILD) {
+                            sh '''
+                                rm -rf sstate-cache downloads tmp
+                            '''
+                        }
+                    }
+                    
+                    // Update local.conf with environment variables
+                    sh """
+                        echo 'MACHINE = "${MACHINE}"' >> conf/local.conf
+                        echo 'DISTRO = "${DISTRO}"' >> conf/local.conf
+                        echo 'BB_NUMBER_THREADS = "${BB_NUMBER_THREADS}"' >> conf/local.conf
+                        echo 'PARALLEL_MAKE = "${PARALLEL_MAKE}"' >> conf/local.conf
+                    """
+                }
+            }
+        }
+
+        // ====================================================================
+        // Stage: Fetch Sources
+        // ====================================================================
+        stage('Fetch Sources') {
+            steps {
+                echo 'Fetching source code...'
+                
+                dir("${BUILD_DIR}") {
+                    sh '''
+                        bitbake -c fetchall ${IMAGE_NAME} || true
+                    '''
+                }
+            }
+        }
+
+        // ====================================================================
+        // Stage: Build Image
+        // ====================================================================
+        stage('Build Image') {
+            steps {
+                echo 'Building Yocto image...'
+                
+                dir("${BUILD_DIR}") {
+                    script {
+                        def buildCmd = "bitbake ${IMAGE_NAME}"
+                        
+                        if (params.BUILD_TYPE == 'quick') {
+                            // Quick build - skip some tasks
+                            buildCmd = "bitbake -k ${IMAGE_NAME}"
+                        }
+                        
+                        sh buildCmd
+                    }
+                }
+            }
+            
+            post {
+                success {
+                    echo 'Image built successfully!'
+                    
+                    // Save build artifacts
+                    script {
+                        if (params.DEPLOY_ARTIFACTS) {
+                            // Archive the image and manifest
+                            archiveArtifacts artifacts: "${DEPLOY_DIR}/${IMAGE_WIC}"
+                            archiveArtifacts artifacts: "${DEPLOY_DIR}/${IMAGE_MANIFEST}"
+                            
+                            // Archive kernel and device tree
+                            archiveArtifacts artifacts: "${DEPLOY_DIR}/Image"
+                            archiveArtifacts artifacts: "${DEPLOY_DIR}/*.dtb"
+                            archiveArtifacts artifacts: "${DEPLOY_DIR}/*.dtbo"
+                        }
+                    }
+                }
+                failure {
+                    echo 'Image build failed!'
+                    
+                    // Save build logs
+                    sh '''
+                        find build/tmp/work -name "log.do_*" -exec cp {} build/logs/ \\;
+                    '''
+                    archiveArtifacts artifacts: 'build/logs/*.log'
+                }
+            }
+        }
+
+        // ====================================================================
+        // Stage: Build SDK
+        // ====================================================================
+        stage('Build SDK') {
+            when {
+                expression { params.BUILD_TYPE == 'sdk' || params.BUILD_TYPE == 'full' }
+            }
+            steps {
+                echo 'Building SDK...'
+                
+                dir("${BUILD_DIR}") {
+                    sh '''
+                        bitbake -c populate_sdk ${IMAGE_NAME}
+                    '''
+                }
+            }
+            post {
+                success {
+                    echo 'SDK built successfully!'
+                    script {
+                        if (params.DEPLOY_ARTIFACTS) {
+                            archiveArtifacts artifacts: "${SDK_DEPLOY_DIR}/${SDK_INSTALLER}"
+                        }
+                    }
+                }
+                failure {
+                    echo 'SDK build failed!'
+                }
+            }
+        }
+
+        // ====================================================================
+        // Stage: Run Tests
+        // ====================================================================
+        stage('Run Tests') {
+            when {
+                expression { params.RUN_TESTS }
+            }
+            steps {
+                echo 'Running tests...'
+                
+                dir("${PROJECT_DIR}") {
+                    sh '''
+                        # Run unit tests
+                        cd applications
+                        find . -name "*_test" -exec {} \\;
+                        
+                        # Run integration tests
+                        cd tests
+                        ./run_integration_tests.sh
+                    '''
+                }
+            }
+            post {
+                success {
+                    echo 'All tests passed!'
+                    junit '**/test-reports/*.xml'
+                }
+                failure {
+                    echo 'Tests failed!'
+                    junit '**/test-reports/*.xml'
+                }
+            }
+        }
+
+        // ====================================================================
+        // Stage: Deploy
+        // ====================================================================
+        stage('Deploy') {
+            when {
+                expression { params.DEPLOY_ARTIFACTS && env.BRANCH_NAME == 'main' }
+            }
+            steps {
+                echo 'Deploying artifacts...'
+                
+                script {
+                    // Create release directory
+                    def releaseVersion = sh(script: 'git describe --tags --always', returnStdout: true).trim()
+                    def releaseDir = "releases/${releaseVersion}"
+                    sh """
+                        mkdir -p ${releaseDir}
+                        cp ${DEPLOY_DIR}/${IMAGE_WIC} ${releaseDir}/
+                        cp ${DEPLOY_DIR}/${IMAGE_MANIFEST} ${releaseDir}/
+                        cp ${SDK_DEPLOY_DIR}/${SDK_INSTALLER} ${releaseDir}/
+                        echo "Release ${releaseVersion} created" > ${releaseDir}/RELEASE.txt
+                    """
+                    
+                    // Create checksums
+                    sh """
+                        cd ${releaseDir}
+                        sha256sum ${IMAGE_WIC} > ${IMAGE_WIC}.sha256
+                        sha256sum ${SDK_INSTALLER} > ${SDK_INSTALLER}.sha256
+                    """
+                    
+                    // Archive release
+                    archiveArtifacts artifacts: "${releaseDir}/*"
+                }
+            }
+        }
+
+        // ====================================================================
+        // Stage: Create Flash Image
+        // ====================================================================
+        stage('Create Flash Image') {
+            when {
+                expression { params.BUILD_TYPE == 'full' }
+            }
+            steps {
+                echo 'Creating flashable image...'
+                
+                dir("${DEPLOY_DIR}") {
+                    sh """
+                        # Create SD card image
+                        bmaptool create -o ${IMAGE_NAME}-${MACHINE}.bmap ${IMAGE_WIC}
+                        
+                        # Create a combined package for flashing
+                        tar -czf ${IMAGE_NAME}-${MACHINE}-flash.tar.gz \
+                            ${IMAGE_WIC} \
+                            ${IMAGE_NAME}-${MACHINE}.bmap \
+                            ${IMAGE_MANIFEST}
+                    """
+                }
+                
+                script {
+                    if (params.DEPLOY_ARTIFACTS) {
+                        archiveArtifacts artifacts: "${DEPLOY_DIR}/${IMAGE_NAME}-${MACHINE}-flash.tar.gz"
+                    }
+                }
+            }
+        }
+
+        // ====================================================================
+        // Stage: Performance Analysis
+        // ====================================================================
+        stage('Performance Analysis') {
+            when {
+                expression { params.BUILD_TYPE == 'full' }
+            }
+            steps {
+                echo 'Analyzing build performance...'
+                
+                dir("${BUILD_DIR}") {
+                    sh '''
+                        bitbake -g ${IMAGE_NAME}
+                        bitbake -s ${IMAGE_NAME}
+                        
+                        # Generate build statistics
+                        bitbake -e ${IMAGE_NAME} > build.env
+                        grep "^BB_VERSION" build.env
+                        grep "^MACHINE" build.env
+                        grep "^DISTRO" build.env
+                    '''
+                }
+                
+                // Archive performance data
+                archiveArtifacts artifacts: 'build/*.dot'
+                archiveArtifacts artifacts: 'build/build.env'
+            }
+        }
+    }
+
+    // ========================================================================
+    // Post-Build Actions
+    // ========================================================================
+    post {
+        // ====================================================================
+        // Success
+        // ====================================================================
+        success {
+            echo 'Pipeline completed successfully!'
+            
+            // Send notifications
+            script {
+                def emailSubject = "Jenkins Build Success: ${JOB_NAME} #${BUILD_NUMBER}"
+                def emailBody = """
+                    Build completed successfully!
+                    
+                    Project: ${JOB_NAME}
+                    Build Number: ${BUILD_NUMBER}
+                    Build URL: ${BUILD_URL}
+                    Branch: ${params.BRANCH_NAME}
+                    
+                    Build artifacts are available at:
+                    ${BUILD_URL}artifact/
+                """
+                
+                // Send email notification
+                emailext(
+                    subject: emailSubject,
+                    body: emailBody,
+                    to: 'build-team@example.com'
+                )
+            }
+        }
+        
+        // ====================================================================
+        // Failure
+        // ====================================================================
+        failure {
+            echo 'Pipeline failed!'
+            
+            // Send failure notifications
+            script {
+                def emailSubject = "Jenkins Build Failed: ${JOB_NAME} #${BUILD_NUMBER}"
+                def emailBody = """
+                    Build failed!
+                    
+                    Project: ${JOB_NAME}
+                    Build Number: ${BUILD_NUMBER}
+                    Build URL: ${BUILD_URL}
+                    Branch: ${params.BRANCH_NAME}
+                    
+                    Please check the build logs for more information.
+                """
+                
+                emailext(
+                    subject: emailSubject,
+                    body: emailBody,
+                    to: 'build-team@example.com'
+                )
+            }
+        }
+        
+        // ====================================================================
+        // Always
+        // ====================================================================
+        always {
+            // Clean up workspace
+            cleanWs()
+            
+            // Archive build logs
+            archiveArtifacts artifacts: 'build/tmp/log/*.log'
+            
+            // Publish build statistics
+            publishHTML([
+                reportDir: 'build/tmp/log',
+                reportFiles: '*.log',
+                reportName: 'Build Logs'
+            ])
+        }
+    }
+
+    // ========================================================================
+    // Parallel Stages (Optional)
+    // ========================================================================
+    // Uncomment to enable parallel testing
+    /*
+    parallel {
+        stage('Build and Test') {
+            stages {
+                stage('Test ARM64') {
+                    agent { label 'yocto-builder-arm64' }
+                    steps {
+                        // Build for ARM64
+                    }
+                }
+                stage('Test x86_64') {
+                    agent { label 'yocto-builder-x86_64' }
+                    steps {
+                        // Build for x86_64
+                    }
+                }
+            }
+        }
+    }
+    */
+}
+
+// ========================================================================
+// Shared Library Functions (Optional)
+// ========================================================================
+/*
+def buildYoctoImage(String imageName, String machine) {
+    withEnv(["MACHINE=${machine}"]) {
+        sh """
+            cd ${PROJECT_DIR}/sources/poky
+            source oe-init-build-env ../../build
+            bitbake ${imageName}
+        """
+    }
+}
+
+def flashImage(String device) {
+    sh """
+        cd ${DEPLOY_DIR}
+        sudo dd if=${IMAGE_WIC} of=${device} bs=4M status=progress
+    """
+}
+*/
+
+// ========================================================================
+// End of Jenkinsfile
+// ========================================================================

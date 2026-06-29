@@ -1,0 +1,330 @@
+---
+# GitHub Actions Workflow for BBB AI-64 Yocto Project
+# 
+# This file defines the CI/CD pipeline for GitHub Actions
+
+name: Yocto Build and Test
+
+# ============================================================================
+# Triggers
+# ============================================================================
+on:
+  push:
+    branches:
+      - main
+      - develop
+      - feature/*
+      - bugfix/*
+    tags:
+      - v*
+  pull_request:
+    branches:
+      - main
+      - develop
+  schedule:
+    # Weekly build on Sunday at 2:00 AM
+    - cron: '0 2 * * 0'
+  workflow_dispatch:
+    inputs:
+      build_type:
+        description: 'Build type (full/quick/sdk/test)'
+        required: true
+        default: 'full'
+        type: choice
+        options:
+          - full
+          - quick
+          - sdk
+          - test
+      clean_build:
+        description: 'Perform clean build'
+        required: false
+        default: false
+        type: boolean
+      run_tests:
+        description: 'Run tests after build'
+        required: false
+        default: true
+        type: boolean
+
+# ============================================================================
+# Environment Variables
+# ============================================================================
+env:
+  PROJECT_DIR: 'BeagleBone_AI-64'
+  MACHINE: 'bbbai64'
+  DISTRO: 'poky'
+  IMAGE_NAME: 'custom-image'
+  BB_NUMBER_THREADS: '8'
+  PARALLEL_MAKE: '-j 8'
+
+# ============================================================================
+# Jobs
+# ============================================================================
+jobs:
+  # ==========================================================================
+  # Job: Build and Test
+  # ==========================================================================
+  build-and-test:
+    name: Build and Test
+    runs-on: ubuntu-22.04
+    timeout-minutes: 360
+    
+    strategy:
+      matrix:
+        machine: [bbbai64]
+        image: [custom-image]
+    
+    steps:
+      # ====================================================================
+      # Step: Checkout Code
+      # ====================================================================
+      - name: Checkout Code
+        uses: actions/checkout@v3
+        with:
+          submodules: recursive
+          fetch-depth: 0
+      
+      # ====================================================================
+      # Step: Cache Dependencies
+      # ====================================================================
+      - name: Cache Yocto Downloads
+        uses: actions/cache@v3
+        id: yocto-cache
+        with:
+          path: |
+            ${{ env.PROJECT_DIR }}/downloads
+            ${{ env.PROJECT_DIR }}/sstate-cache
+            ${{ env.PROJECT_DIR }}/build/tmp
+          key: ${{ runner.os }}-yocto-${{ github.sha }}
+          restore-keys: |
+            ${{ runner.os }}-yocto-
+      
+      # ====================================================================
+      # Step: Setup Build Environment
+      # ====================================================================
+      - name: Setup Build Environment
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            gawk wget git diffstat unzip texinfo gcc build-essential \
+            chrpath socat cpio python3 python3-pip python3-pexpect \
+            xz-utils debianutils iputils-ping python3-git python3-jinja2 \
+            libegl1-mesa libsdl1.2-dev xterm python3-subunit mesa-common-dev \
+            zstd liblz4-tool
+          
+          # Setup Yocto environment
+          cd ${{ env.PROJECT_DIR }}
+          cd sources/poky
+          source oe-init-build-env ../../build
+          
+          # Configure build
+          echo "MACHINE = \"${{ matrix.machine }}\"" >> conf/local.conf
+          echo "DISTRO = \"${{ env.DISTRO }}\"" >> conf/local.conf
+          echo "BB_NUMBER_THREADS = \"${{ env.BB_NUMBER_THREADS }}\"" >> conf/local.conf
+          echo "PARALLEL_MAKE = \"${{ env.PARALLEL_MAKE }}\"" >> conf/local.conf
+      
+      # ====================================================================
+      # Step: Fetch Sources
+      # ====================================================================
+      - name: Fetch Sources
+        if: steps.yocto-cache.outputs.cache-hit != 'true'
+        run: |
+          cd ${{ env.PROJECT_DIR }}
+          cd sources/poky
+          source oe-init-build-env ../../build
+          bitbake -c fetchall ${{ matrix.image }} || true
+      
+      # ====================================================================
+      # Step: Build Image
+      # ====================================================================
+      - name: Build Image
+        id: build
+        run: |
+          cd ${{ env.PROJECT_DIR }}
+          cd sources/poky
+          source oe-init-build-env ../../build
+          
+          # Clean build if requested
+          if [ "${{ github.event.inputs.clean_build }}" == "true" ]; then
+            bitbake -c cleanall ${{ matrix.image }}
+          fi
+          
+          # Build the image
+          bitbake ${{ matrix.image }}
+      
+      # ====================================================================
+      # Step: Upload Artifacts
+      # ====================================================================
+      - name: Upload Artifacts
+        if: success()
+        uses: actions/upload-artifact@v3
+        with:
+          name: yocto-build
+          path: |
+            ${{ env.PROJECT_DIR }}/build/deploy/images/${{ matrix.machine }}/${{ env.IMAGE_NAME }}-${{ matrix.machine }}.wic.gz
+            ${{ env.PROJECT_DIR }}/build/deploy/images/${{ matrix.machine }}/${{ env.IMAGE_NAME }}-${{ matrix.machine }}.manifest
+            ${{ env.PROJECT_DIR }}/build/deploy/images/${{ matrix.machine }}/Image
+            ${{ env.PROJECT_DIR }}/build/deploy/images/${{ matrix.machine }}/*.dtb
+            ${{ env.PROJECT_DIR }}/build/deploy/images/${{ matrix.machine }}/*.dtbo
+          retention-days: 30
+      
+      # ====================================================================
+      # Step: Upload Build Logs
+      # ====================================================================
+      - name: Upload Build Logs
+        if: always()
+        uses: actions/upload-artifact@v3
+        with:
+          name: build-logs
+          path: ${{ env.PROJECT_DIR }}/build/tmp/log/
+          retention-days: 7
+      
+      # ====================================================================
+      # Step: Run Tests
+      # ====================================================================
+      - name: Run Tests
+        if: github.event.inputs.run_tests == 'true' || github.event_name == 'pull_request'
+        run: |
+          cd ${{ env.PROJECT_DIR }}/applications
+          
+          # Run unit tests
+          find . -name "*_test" -exec {} \; || true
+          
+          # Run integration tests
+          cd tests
+          ./run_integration_tests.sh
+      
+      # ====================================================================
+      # Step: Build SDK
+      # ====================================================================
+      - name: Build SDK
+        if: github.event.inputs.build_type == 'sdk' || github.event.inputs.build_type == 'full'
+        run: |
+          cd ${{ env.PROJECT_DIR }}
+          cd sources/poky
+          source oe-init-build-env ../../build
+          bitbake -c populate_sdk ${{ matrix.image }}
+      
+      # ====================================================================
+      # Step: Upload SDK
+      # ====================================================================
+      - name: Upload SDK
+        if: success()
+        uses: actions/upload-artifact@v3
+        with:
+          name: yocto-sdk
+          path: |
+            ${{ env.PROJECT_DIR }}/build/deploy/sdk/*.sh
+          retention-days: 30
+
+  # ==========================================================================
+  # Job: Security Scan
+  # ==========================================================================
+  security-scan:
+    name: Security Scan
+    runs-on: ubuntu-22.04
+    needs: build-and-test
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v3
+      
+      - name: Download Artifacts
+        uses: actions/download-artifact@v3
+        with:
+          name: yocto-build
+          path: build-artifacts
+      
+      - name: Run Trivy Security Scan
+        uses: aquasecurity/trivy-action@master
+        with:
+          scan-type: 'rootfs'
+          scan-ref: 'build-artifacts'
+          format: 'sarif'
+          output: 'trivy-results.sarif'
+          severity: 'HIGH,CRITICAL'
+      
+      - name: Upload Security Results
+        uses: github/codeql-action/upload-sarif@v2
+        with:
+          sarif_file: 'trivy-results.sarif'
+
+  # ==========================================================================
+  # Job: Create Release
+  # ==========================================================================
+  create-release:
+    name: Create Release
+    runs-on: ubuntu-22.04
+    needs: build-and-test
+    if: startsWith(github.ref, 'refs/tags/v')
+    permissions:
+      contents: write
+      packages: write
+    
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+      
+      - name: Download Artifacts
+        uses: actions/download-artifact@v3
+        with:
+          name: yocto-build
+          path: release-artifacts
+      
+      - name: Download SDK
+        uses: actions/download-artifact@v3
+        with:
+          name: yocto-sdk
+          path: release-artifacts
+      
+      - name: Create Release
+        uses: softprops/action-gh-release@v1
+        with:
+          name: Release ${{ github.ref_name }}
+          draft: false
+          prerelease: false
+          generate_release_notes: true
+          files: |
+            release-artifacts/*
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  # ==========================================================================
+  # Job: Notification
+  # ==========================================================================
+  notification:
+    name: Notification
+    runs-on: ubuntu-22.04
+    needs: [build-and-test, security-scan, create-release]
+    if: always()
+    
+    steps:
+      - name: Send Notification
+        uses: actions/github-script@v6
+        with:
+          script: |
+            const status = '${{ needs.build-and-test.result }}';
+            const message = status === 'success' 
+              ? '✅ Build completed successfully!' 
+              : '❌ Build failed!';
+            
+            // Send to Slack (if configured)
+            if (process.env.SLACK_WEBHOOK) {
+              await github.rest.repos.createCommitStatus({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                sha: context.sha,
+                state: status === 'success' ? 'success' : 'failure',
+                context: 'notification',
+                description: message,
+                target_url: process.env.GITHUB_SERVER_URL + '/' + context.repo.owner + '/' + context.repo.repo + '/actions/runs/' + context.runId
+              });
+            }
+
+# ============================================================================
+# End of GitHubActions.yml
+# ============================================================================

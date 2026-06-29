@@ -1,0 +1,228 @@
+yocto-bbbai64-project/
+│
+├── README.md
+├── LICENSE
+├── .gitignore
+│
+├── docs/
+│   ├── architecture/
+│   │   ├── system-design.md
+│   │   ├── software-stack.md
+│   │   └── boot-flow.md
+│   │
+│   ├── hardware/
+│   │   ├── sensors.md
+│   │   ├── gpio-map.md
+│   │   └── schematics/
+│   │
+│   ├── yocto/
+│   │   ├── build-guide.md
+│   │   ├── layer-guide.md
+│   │   └── release-process.md
+│   │
+│   └── api/
+│
+├── scripts/
+│   ├── setup-host.sh
+│   ├── sync-sources.sh
+│   ├── build-image.sh
+│   ├── clean-build.sh
+│   ├── create-sdk.sh
+│   ├── flash-sdcard.sh
+│   └── release.sh
+│
+├── sources/
+│   │
+│   ├── poky/
+│   │
+│   ├── meta-openembedded/
+│   │
+│   ├── meta-qt6/
+│   │
+│   ├── meta-security/
+│   │
+│   ├── meta-ti/
+│   │
+│   ├── meta-virtualization/
+│   │
+│   ├── meta-swupdate/
+│   │
+│   └── meta-custom/
+│       │
+│       ├── conf/
+│       │   ├── layer.conf
+│       │   ├── distro/
+│       │   │   └── customdistro.conf
+│       │   │
+│       │   └── machine/
+│       │       └── bbbai64.conf
+│       │
+│       ├── classes/
+│       │
+│       ├── files/
+│       │
+│       ├── dynamic-layers/
+│       │
+│       ├── recipes-core/
+│       │   │
+│       │   ├── images/
+│       │   │   ├── custom-image.bb
+│       │   │   ├── dev-image.bb
+│       │   │   └── production-image.bb
+│       │   │
+│       │   ├── packagegroups/
+│       │   │   ├── packagegroup-gui.bb
+│       │   │   ├── packagegroup-sensors.bb
+│       │   │   └── packagegroup-system.bb
+│       │   │
+│       │   └── init/
+│       │
+│       ├── recipes-kernel/
+│       │   │
+│       │   ├── linux/
+│       │   │   ├── linux-ti.bbappend
+│       │   │   ├── defconfig
+│       │   │   └── patches/
+│       │   │
+│       │   └── modules/
+│       │
+│       ├── recipes-bsp/
+│       │   │
+│       │   ├── u-boot/
+│       │   │   ├── u-boot-ti.bbappend
+│       │   │   └── patches/
+│       │   │
+│       │   └── device-tree/
+│       │       ├── bbbai64-custom.dts
+│       │       └── overlays/
+│       │
+│       ├── recipes-apps/
+│       │   │
+│       │   ├── device-manager/
+│       │   │   ├── device-manager.bb
+│       │   │   └── files/
+│       │   │
+│       │   ├── sensor-service/
+│       │   │   ├── sensor-service.bb
+│       │   │   ├── sensor.service
+│       │   │   └── files/
+│       │   │
+│       │   ├── updater/
+│       │   │   ├── updater.bb
+│       │   │   └── files/
+│       │   │
+│       │   └── logger/
+│       │
+│       ├── recipes-gui/
+│       │   │
+│       │   ├── qt-launcher/
+│       │   │   ├── qt-launcher.bb
+│       │   │   └── files/
+│       │   │
+│       │   ├── dashboard/
+│       │   │   ├── dashboard.bb
+│       │   │   └── files/
+│       │   │
+│       │   └── themes/
+│       │
+│       ├── recipes-sensors/
+│       │   │
+│       │   ├── imu/
+│       │   │   ├── imu.bb
+│       │   │   └── files/
+│       │   │
+│       │   ├── gps/
+│       │   │   ├── gps.bb
+│       │   │   └── files/
+│       │   │
+│       │   ├── temperature/
+│       │   │   ├── temp.bb
+│       │   │   └── files/
+│       │   │
+│       │   └── pressure/
+│       │
+│       ├── recipes-connectivity/
+│       │   │
+│       │   ├── bluetooth/
+│       │   ├── wifi/
+│       │   ├── mqtt/
+│       │   └── ethernet/
+│       │
+│       ├── recipes-security/
+│       │   │
+│       │   ├── certificates/
+│       │   ├── openssl/
+│       │   └── secureboot/
+│       │
+│       ├── recipes-support/
+│       │   │
+│       │   ├── configs/
+│       │   ├── scripts/
+│       │   └── services/
+│       │
+│       └── recipes-test/
+│           │
+│           ├── unit-tests/
+│           ├── hardware-tests/
+│           └── production-tests/
+│
+├── build/
+│   │
+│   ├── conf/
+│   │   ├── local.conf
+│   │   ├── bblayers.conf
+│   │   └── auto.conf
+│   │
+│   ├── downloads/
+│   │
+│   ├── sstate-cache/
+│   │
+│   ├── tmp/
+│   │
+│   └── deploy/
+│
+├── applications/
+│   │
+│   ├── gui-app/
+│   │   ├── CMakeLists.txt
+│   │   ├── src/
+│   │   ├── include/
+│   │   ├── qml/
+│   │   ├── resources/
+│   │   └── tests/
+│   │
+│   ├── sensor-service/
+│   │   ├── CMakeLists.txt
+│   │   ├── src/
+│   │   ├── include/
+│   │   ├── drivers/
+│   │   └── tests/
+│   │
+│   ├── device-manager/
+│   │   ├── CMakeLists.txt
+│   │   ├── src/
+│   │   ├── include/
+│   │   └── tests/
+│   │
+│   └── common/
+│       ├── logger/
+│       ├── ipc/
+│       ├── config/
+│       └── utils/
+│
+├── sdk/
+│
+├── tools/
+│   ├── provisioning/
+│   ├── diagnostics/
+│   └── calibration/
+│
+├── ci/
+│   ├── Jenkinsfile
+│   ├── GitLab-CI.yml
+│   └── GitHubActions.yml
+│
+└── releases/
+    ├── v1.0
+    ├── v1.1
+    └── latest

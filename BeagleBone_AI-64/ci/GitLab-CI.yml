@@ -1,0 +1,327 @@
+---
+# GitLab CI Configuration for BBB AI-64 Yocto Project
+# 
+# This file defines the CI/CD pipeline for GitLab CI/CD
+
+# ============================================================================
+# Stages
+# ============================================================================
+stages:
+  - setup
+  - fetch
+  - build
+  - test
+  - deploy
+  - release
+
+# ============================================================================
+# Variables
+# ============================================================================
+variables:
+  # Build Configuration
+  PROJECT_DIR: "BeagleBone_AI-64"
+  BUILD_DIR: "${CI_PROJECT_DIR}/${PROJECT_DIR}/build"
+  SOURCES_DIR: "${CI_PROJECT_DIR}/${PROJECT_DIR}/sources"
+  
+  # Yocto Settings
+  MACHINE: "bbbai64"
+  DISTRO: "poky"
+  IMAGE_NAME: "custom-image"
+  
+  # Build Options
+  BB_NUMBER_THREADS: "8"
+  PARALLEL_MAKE: "-j 8"
+  
+  # Output Paths
+  DEPLOY_DIR: "${BUILD_DIR}/deploy/images/${MACHINE}"
+  SDK_DEPLOY_DIR: "${BUILD_DIR}/deploy/sdk"
+  
+  # Artifact Names
+  IMAGE_WIC: "${IMAGE_NAME}-${MACHINE}.wic.gz"
+  IMAGE_MANIFEST: "${IMAGE_NAME}-${MACHINE}.manifest"
+  SDK_INSTALLER: "poky-glibc-x86_64-${IMAGE_NAME}-core-image-sdk-1.0.sh"
+  
+  # Cache Settings
+  CACHE_FALLBACK_KEY: "yocto-cache-${CI_COMMIT_REF_SLUG}"
+  CACHE_PATH: "${CI_PROJECT_DIR}/cache"
+  
+  # Docker Registry
+  DOCKER_REGISTRY: "registry.gitlab.com"
+  DOCKER_IMAGE: "${DOCKER_REGISTRY}/${CI_PROJECT_PATH}"
+
+# ============================================================================
+# Cache Configuration
+# ============================================================================
+cache:
+  key: "${CI_COMMIT_REF_SLUG}"
+  paths:
+    - "${CACHE_PATH}/sstate-cache/"
+    - "${CACHE_PATH}/downloads/"
+    - "${CACHE_PATH}/build/"
+  policy: pull-push
+
+# ============================================================================
+# Job: Setup Environment
+# ============================================================================
+setup-environment:
+  stage: setup
+  image: ubuntu:22.04
+  script:
+    - |
+      apt-get update
+      apt-get install -y \
+        gawk wget git diffstat unzip texinfo gcc build-essential \
+        chrpath socat cpio python3 python3-pip python3-pexpect \
+        xz-utils debianutils iputils-ping python3-git python3-jinja2 \
+        libegl1-mesa libsdl1.2-dev xterm python3-subunit mesa-common-dev \
+        zstd liblz4-tool
+    - |
+      mkdir -p ${CACHE_PATH}/{sstate-cache,downloads,build}
+      ln -sf ${CACHE_PATH}/sstate-cache ${PROJECT_DIR}/sstate-cache
+      ln -sf ${CACHE_PATH}/downloads ${PROJECT_DIR}/downloads
+      ln -sf ${CACHE_PATH}/build ${PROJECT_DIR}/build
+  artifacts:
+    paths:
+      - "${PROJECT_DIR}/"
+    expire_in: 1 week
+
+# ============================================================================
+# Job: Fetch Sources
+# ============================================================================
+fetch-sources:
+  stage: fetch
+  image: ubuntu:22.04
+  needs: ["setup-environment"]
+  script:
+    - |
+      cd ${PROJECT_DIR}/sources/poky
+      source oe-init-build-env ../../build
+      
+      # Configure build
+      echo "MACHINE = \"${MACHINE}\"" >> conf/local.conf
+      echo "DISTRO = \"${DISTRO}\"" >> conf/local.conf
+      echo "BB_NUMBER_THREADS = \"${BB_NUMBER_THREADS}\"" >> conf/local.conf
+      echo "PARALLEL_MAKE = \"${PARALLEL_MAKE}\"" >> conf/local.conf
+      
+      # Fetch all sources
+      bitbake -c fetchall ${IMAGE_NAME} || true
+  cache:
+    paths:
+      - "${PROJECT_DIR}/downloads/"
+    policy: pull-push
+  artifacts:
+    paths:
+      - "${PROJECT_DIR}/build/conf/"
+    expire_in: 1 week
+
+# ============================================================================
+# Job: Build Image
+# ============================================================================
+build-image:
+  stage: build
+  image: ubuntu:22.04
+  needs: ["fetch-sources"]
+  timeout: 4 hours
+  script:
+    - |
+      cd ${PROJECT_DIR}/sources/poky
+      source oe-init-build-env ../../build
+      
+      # Clean build if requested
+      if [ "${CI_COMMIT_MESSAGE}" =~ "clean" ]; then
+        bitbake -c cleanall ${IMAGE_NAME}
+      fi
+      
+      # Build the image
+      bitbake ${IMAGE_NAME}
+  artifacts:
+    paths:
+      - "${DEPLOY_DIR}/${IMAGE_WIC}"
+      - "${DEPLOY_DIR}/${IMAGE_MANIFEST}"
+      - "${DEPLOY_DIR}/Image"
+      - "${DEPLOY_DIR}/*.dtb"
+      - "${DEPLOY_DIR}/*.dtbo"
+      - "${BUILD_DIR}/tmp/log/"
+    expire_in: 1 week
+    reports:
+      junit: "${BUILD_DIR}/test-reports/*.xml"
+  cache:
+    paths:
+      - "${PROJECT_DIR}/sstate-cache/"
+      - "${PROJECT_DIR}/downloads/"
+    policy: pull-push
+
+# ============================================================================
+# Job: Build SDK
+# ============================================================================
+build-sdk:
+  stage: build
+  image: ubuntu:22.04
+  needs: ["fetch-sources"]
+  timeout: 2 hours
+  script:
+    - |
+      cd ${PROJECT_DIR}/sources/poky
+      source oe-init-build-env ../../build
+      bitbake -c populate_sdk ${IMAGE_NAME}
+  artifacts:
+    paths:
+      - "${SDK_DEPLOY_DIR}/${SDK_INSTALLER}"
+    expire_in: 1 week
+  cache:
+    paths:
+      - "${PROJECT_DIR}/sstate-cache/"
+      - "${PROJECT_DIR}/downloads/"
+    policy: pull-push
+
+# ============================================================================
+# Job: Run Tests
+# ============================================================================
+run-tests:
+  stage: test
+  image: ubuntu:22.04
+  needs: ["build-image"]
+  script:
+    - |
+      cd ${PROJECT_DIR}/applications
+      
+      # Run unit tests
+      find . -name "*_test" -exec {} \; || true
+      
+      # Run integration tests
+      cd tests
+      ./run_integration_tests.sh
+  artifacts:
+    paths:
+      - "${PROJECT_DIR}/test-reports/"
+    reports:
+      junit: "${PROJECT_DIR}/test-reports/*.xml"
+    expire_in: 1 week
+
+# ============================================================================
+# Job: Deploy
+# ============================================================================
+deploy:
+  stage: deploy
+  image: alpine:latest
+  needs: ["build-image", "build-sdk"]
+  only:
+    - main
+    - develop
+  script:
+    - |
+      apk add --no-cache rsync
+      
+      # Create versioned release directory
+      VERSION=$(git describe --tags --always)
+      RELEASE_DIR="${CI_PROJECT_DIR}/releases/${VERSION}"
+      mkdir -p ${RELEASE_DIR}
+      
+      # Copy artifacts
+      cp ${DEPLOY_DIR}/${IMAGE_WIC} ${RELEASE_DIR}/
+      cp ${DEPLOY_DIR}/${IMAGE_MANIFEST} ${RELEASE_DIR}/
+      cp ${SDK_DEPLOY_DIR}/${SDK_INSTALLER} ${RELEASE_DIR}/
+      
+      # Create checksums
+      cd ${RELEASE_DIR}
+      sha256sum ${IMAGE_WIC} > ${IMAGE_WIC}.sha256
+      sha256sum ${SDK_INSTALLER} > ${SDK_INSTALLER}.sha256
+      
+      # Create release notes
+      echo "Release ${VERSION}" > RELEASE.txt
+      echo "Build Date: $(date)" >> RELEASE.txt
+      echo "Commit: ${CI_COMMIT_SHA}" >> RELEASE.txt
+      echo "Branch: ${CI_COMMIT_REF_NAME}" >> RELEASE.txt
+      
+      # Upload to GitLab Releases
+      if [ "${CI_COMMIT_REF_NAME}" = "main" ]; then
+        # Create a GitLab Release
+        curl --header "PRIVATE-TOKEN: ${GITLAB_TOKEN}" \
+          --request POST \
+          --data "name=Release ${VERSION}" \
+          --data "tag_name=${VERSION}" \
+          --data "description=Release ${VERSION} from CI" \
+          "${CI_API_V4_URL}/projects/${CI_PROJECT_ID}/releases"
+      fi
+  artifacts:
+    paths:
+      - "releases/*/"
+    expire_in: 30 days
+
+# ============================================================================
+# Job: Docker Build
+# ============================================================================
+docker-build:
+  stage: deploy
+  image: docker:latest
+  services:
+    - docker:dind
+  needs: ["deploy"]
+  only:
+    - main
+  script:
+    - |
+      docker login -u ${CI_REGISTRY_USER} -p ${CI_REGISTRY_PASSWORD} ${DOCKER_REGISTRY}
+      
+      # Build a Docker image for QEMU emulation
+      docker build -t ${DOCKER_IMAGE}:${CI_COMMIT_SHORT_SHA} .
+      docker tag ${DOCKER_IMAGE}:${CI_COMMIT_SHORT_SHA} ${DOCKER_IMAGE}:latest
+      docker push ${DOCKER_IMAGE}:${CI_COMMIT_SHORT_SHA}
+      docker push ${DOCKER_IMAGE}:latest
+
+# ============================================================================
+# Job: Security Scan
+# ============================================================================
+security-scan:
+  stage: test
+  image: aquasec/trivy:latest
+  needs: ["build-image"]
+  only:
+    - main
+    - develop
+  script:
+    - |
+      # Scan the rootfs for vulnerabilities
+      trivy rootfs ${BUILD_DIR}/tmp/rootfs/ \
+        --severity HIGH,CRITICAL \
+        --ignore-unfixed \
+        --format table \
+        --exit-code 1
+  artifacts:
+    paths:
+      - "trivy-report.json"
+    expire_in: 1 week
+
+# ============================================================================
+# Job: Performance Benchmark
+# ============================================================================
+performance-benchmark:
+  stage: test
+  image: ubuntu:22.04
+  needs: ["build-image"]
+  only:
+    - main
+  script:
+    - |
+      cd ${PROJECT_DIR}
+      
+      # Install benchmarking tools
+      apt-get update
+      apt-get install -y sysbench stress-ng
+      
+      # Run benchmarks
+      sysbench cpu run
+      sysbench memory run
+      sysbench threads run
+      
+      # Log results
+      echo "Benchmark results:" > benchmark.log
+      sysbench cpu run --threads=4 >> benchmark.log
+  artifacts:
+    paths:
+      - "benchmark.log"
+    expire_in: 1 week
+
+# ============================================================================
+# End of GitLab-CI.yml
+# ============================================================================
