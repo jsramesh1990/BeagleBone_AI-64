@@ -1,0 +1,48 @@
+sdk/
+├── README.md
+├── environment-setup.sh
+├── toolchain/
+│   ├── bin/
+│   │   ├── arm-poky-linux-gnueabi-gcc
+│   │   ├── arm-poky-linux-gnueabi-g++
+│   │   ├── arm-poky-linux-gnueabi-ld
+│   │   ├── arm-poky-linux-gnueabi-ar
+│   │   ├── arm-poky-linux-gnueabi-objcopy
+│   │   ├── arm-poky-linux-gnueabi-objdump
+│   │   ├── arm-poky-linux-gnueabi-strip
+│   │   └── arm-poky-linux-gnueabi-gdb
+│   ├── include/
+│   │   ├── c++/
+│   │   ├── glibc/
+│   │   └── linux/
+│   ├── lib/
+│   │   ├── libstdc++.so
+│   │   ├── libc.so
+│   │   ├── libm.so
+│   │   └── libpthread.so
+│   └── sysroot/
+│       ├── usr/
+│       │   ├── include/
+│       │   ├── lib/
+│       │   └── share/
+│       └── etc/
+├── scripts/
+│   ├── prepare-sdk.sh
+│   ├── build-app.sh
+│   ├── deploy-target.sh
+│   └── qmake-setup.sh
+├── examples/
+│   ├── hello-world/
+│   ├── sensor-reader/
+│   └── qt-gui/
+├── cmake/
+│   ├── Toolchain.cmake
+│   ├── FindYocto.cmake
+│   └── yocto-config.cmake
+├── qmake/
+│   ├── mkspecs/
+│   └── qmake.conf
+└── docs/
+    ├── sdk-guide.md
+    ├── api-reference.md
+    └── examples.md

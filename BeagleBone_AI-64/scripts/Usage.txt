@@ -1,0 +1,14 @@
+# Basic flash with auto-detection
+./scripts/flash-sdcard.sh custom-image /dev/sdb
+
+# Flash with specific method
+./scripts/flash-sdcard.sh production-image /dev/sdc dd true
+
+# List available devices
+./scripts/flash-sdcard.sh --list-devices
+
+# Flash with backup
+./scripts/flash-sdcard.sh custom-image /dev/sdb auto true true
+
+# Show help
+./scripts/flash-sdcard.sh --help
