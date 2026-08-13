@@ -1,3 +1,5 @@
+Follow this steps::
+
 # Basic flash with auto-detection
 ./scripts/flash-sdcard.sh custom-image /dev/sdb
 
