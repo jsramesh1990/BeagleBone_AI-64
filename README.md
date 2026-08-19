@@ -20,6 +20,17 @@
 
 ---
 
+## Complete BeagleBone AI-64 System Flow
+
+The following animation illustrates the complete BeagleBone AI-64 boot, Linux, peripheral, AI-processing, and application execution flow.
+
+<p align="center">
+  <img src="images/bbb_ai64_flow_animation.gif"
+       alt="BeagleBone AI-64 Complete System Flow"
+       width="950">
+</p>
+
+
 ##  Table of Contents
 
 - [Overview](#-overview)
